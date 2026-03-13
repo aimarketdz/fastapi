@@ -11,7 +11,7 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# ─── Helper ───────────────────────────────────────────
+# --- Helper ---
 def is_real_key(key: str) -> bool:
     """Check if an env var is a real key (not empty or placeholder)."""
     if not key:
@@ -20,12 +20,12 @@ def is_real_key(key: str) -> bool:
     key_lower = key.lower()
     return not any(p in key_lower for p in placeholders)
 
-# ─── Models ───────────────────────────────────────────
+# --- Models ---
 class PostRequest(BaseModel):
     topic: str
-    platform: str  # "facebook" | "instagram"
+    platform: str
     language: str = "ar"
-    tone: str = "engaging"  # engaging | professional | funny
+    tone: str = "engaging"
 
 class PublishRequest(BaseModel):
     text: str
@@ -45,7 +45,7 @@ class WebhookPayload(BaseModel):
     data: dict
     source: Optional[str] = "n8n"
 
-# ─── Endpoints ────────────────────────────────────────
+# --- Endpoints ---
 @app.get("/")
 def root():
     return {
@@ -58,8 +58,7 @@ def root():
 async def generate_post(req: PostRequest):
     """
     Generate a social media post using AI.
-    Connects to OpenAI API when OPENAI_API_KEY is configured.
-    Falls back to demo mode if no valid API key is set.
+    Falls back to demo mode if no valid API key is configured.
     """
     api_key = os.getenv("OPENAI_API_KEY", "")
 
@@ -90,12 +89,12 @@ async def generate_post(req: PostRequest):
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Failed to call OpenAI: {str(e)}")
     else:
-        # Demo mode - return sample Arabic post
-        demo_posts = {
-            "facebook": f"\ud83d\ude80 [Demo Mode] \u0645\u0646\u0634\u0648\u0631 \u062a\u062c\u0631\u064a\u0628\u064a \u062d\u0648\u0644: {req.topic}\n\n\u0647\u0630\u0627 \u0645\u062b\u0627\u0644 \u0639\u0644\u0649 \u0645\u0646\u0634\u0648\u0631 \u0641\u064a\u0633\u0628\u0648\u0643 \u0633\u064a\u062a\u0645 \u0625\u0646\u0634\u0627\u0624\u0647 \u0628\u0627\u0633\u062a\u062e\u062f\u0627\u0645 \u0627\u0644\u0630\u0643\u0627\u0621 \u0627\u0644\u0627\u0635\u0637\u0646\u0627\u0639\u064a.\n\n#\u0630\u0643\u0627\u0621\u0627\u0635\u0637\u0646\u0627\u0639\u064a #\u062a\u0633\u0648\u064a\u0642_\u0631\u0642\u0645\u064a #\u0625\u0636\u0627\u0641\u0629_OPENAI_API_KEY\u0644\u062a\u0641\u0639\u064a\u0644_\u0627\u0644\u0630\u0643\u0627\u0621",
-            "instagram": f"\u2728 [Demo Mode] \u0645\u062d\u062a\u0648\u0649 \u062a\u062c\u0631\u064a\u0628\u064a \u062d\u0648\u0644: {req.topic}\n\n\u0623\u0636\u0641 OPENAI_API_KEY \u0641\u064a \u0645\u062a\u063a\u064a\u0631\u0627\u062a Railway \u0644\u062a\u0641\u0639\u064a\u0644 \u0627\u0644\u0646\u0634\u0631 \u0628\u0627\u0644\u0630\u0643\u0627\u0621 \u0627\u0644\u0627\u0635\u0637\u0646\u0627\u0639\u064a.\n\n#AI #\u062a\u0633\u0648\u064a\u0642"
-        }
-        generated_text = demo_posts.get(req.platform, demo_posts["facebook"])
+        # Demo mode
+        generated_text = (
+            f"[Demo Mode] Sample post about: {req.topic}\n"
+            f"Platform: {req.platform} | Language: {req.language} | Tone: {req.tone}\n\n"
+            "This is a demo response. Add a valid OPENAI_API_KEY in Railway Variables to enable AI generation."
+        )
 
     return {
         "success": True,
@@ -171,7 +170,6 @@ async def schedule_post(req: ScheduleRequest):
 async def n8n_webhook(payload: WebhookPayload):
     """
     Webhook endpoint for n8n or Make.com automations.
-    Receives action requests and processes them.
     """
     return {
         "success": True,
